@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SUBJECT-0 — Observation Deck</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header id="topbar">
+  <div class="brand">
+    <span class="rec-dot"></span>
+    <span class="title">SUBJECT-0</span>
+    <span class="subtitle">// observation deck</span>
+  </div>
+  <div class="session-info">
+    <span id="session-day">DAY 1</span>
+    <span class="sep">·</span>
+    <span id="session-clock">T+00:00</span>
+    <span class="sep">·</span>
+    <span class="daylight">☀ PERMANENT DAY</span>
+  </div>
+  <div class="hint" id="hint">click his monitor to view his screen</div>
+</header>
+
+<main id="layout">
+
+  <section id="habitat">
+    <div class="feed-label">FEED A — HABITAT <span class="live">● LIVE</span></div>
+    <canvas id="room-canvas"></canvas>
+  </section>
+
+  <aside id="mindpanel">
+    <div class="panel-head">
+      <span>COGNITIVE TRACE — SUBJECT-0</span>
+      <span id="affect-readout">unease 0.00</span>
+    </div>
+    <div id="thoughts" aria-hidden="true"></div>
+    <!-- completed thoughts are announced here once, whole -->
+    <div id="sr-thoughts" class="sr-only" role="log" aria-live="polite"></div>
+  </aside>
+
+</main>
+
+<!-- ===== His computer screen (opens when you click the monitor) ===== -->
+<div id="screen-overlay" class="hidden">
+  <div id="screen-scrim"></div>
+  <div id="screen-bezel">
+    <div id="desktop">
+
+      <div id="taskbar">
+        <span class="os-name">MKR/OS 1.0</span>
+        <div id="build-progress">
+          <span class="bp-label">SIMULATION BUILD</span>
+          <div class="bp-track"><div class="bp-fill" id="bp-fill"></div></div>
+          <span class="bp-pct" id="bp-pct">0.0%</span>
+        </div>
+        <span class="os-clock">☀ 13:37</span>
+      </div>
+
+      <div id="windows">
+
+        <div class="win" id="win-editor">
+          <div class="win-title">
+            <span class="win-dots"><i></i><i></i><i></i></span>
+            <span id="editor-filename">world.geo.js</span>
+          </div>
+          <pre id="editor-body"><code id="editor-code"></code><span id="editor-caret">&#9608;</span></pre>
+        </div>
+
+        <div class="win" id="win-preview">
+          <div class="win-title">
+            <span class="win-dots"><i></i><i></i><i></i></span>
+            <span>FEED B — SIMULATION // SUBJECT-1 <span class="live">● REC</span></span>
+          </div>
+          <canvas id="preview-canvas" width="192" height="144"></canvas>
+          <div id="subject-status">signal: no subject instantiated</div>
+        </div>
+
+        <div class="win" id="win-terminal">
+          <div class="win-title">
+            <span class="win-dots"><i></i><i></i><i></i></span>
+            <span>terminal — build.log</span>
+          </div>
+          <div id="terminal-body"></div>
+        </div>
+
+      </div>
+
+      <button id="screen-close" title="return to room (Esc)">✕</button>
+    </div>
+  </div>
+</div>
+
+<script src="mind.js"></script>
+<script src="room.js"></script>
+<script src="screen.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
