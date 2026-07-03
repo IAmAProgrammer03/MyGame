@@ -258,7 +258,7 @@
   // ---------------------------------------------------------
   var visible = false;
   var overlay, editorCode, editorFilename, editorBody, terminalBody,
-      subjectStatusEl, bpFill, bpPct, previewCanvas, pctx;
+      subjectStatusEl, subjectTelemetryEl, bpFill, bpPct, previewCanvas, pctx;
 
   var typedChars = 0;          // how much of the current buffer is on screen
   var currentModuleId = null;
@@ -534,6 +534,16 @@
     var lt = window.MIND.subjectLastThought;
     var line = lt && window.MIND.subjectStage >= 1 ? st + "  ·  “" + lt + "”" : st;
     if (subjectStatusEl.textContent !== line) subjectStatusEl.textContent = line;
+
+    var tele;
+    if (window.MIND.subjectStage < 1) {
+      tele = "telemetry: —";
+    } else {
+      tele = "♥ " + window.MIND.heartRate + " bpm  ·  door: " +
+             window.MIND.doorTouches + "  ·  stack: " +
+             (window.MIND.depth > 9 ? "9+" : window.MIND.depth);
+    }
+    if (subjectTelemetryEl.textContent !== tele) subjectTelemetryEl.textContent = tele;
   }
 
   function init() {
@@ -543,6 +553,7 @@
     editorBody = document.getElementById("editor-body");
     terminalBody = document.getElementById("terminal-body");
     subjectStatusEl = document.getElementById("subject-status");
+    subjectTelemetryEl = document.getElementById("subject-telemetry");
     bpFill = document.getElementById("bp-fill");
     bpPct = document.getElementById("bp-pct");
     previewCanvas = document.getElementById("preview-canvas");

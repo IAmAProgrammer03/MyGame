@@ -20,8 +20,13 @@
     <span id="session-clock">T+00:00</span>
     <span class="sep">·</span>
     <span class="daylight">☀ PERMANENT DAY</span>
+    <span class="sep">·</span>
+    <span id="stack-readout" title="simulation stack depth">STACK 1</span>
   </div>
-  <div class="hint" id="hint">click his monitor to view his screen</div>
+  <div class="topbar-right">
+    <div class="hint" id="hint">click his monitor to view his screen</div>
+    <button id="sound-toggle" aria-pressed="false" title="toggle sound">🔇 SOUND</button>
+  </div>
 </header>
 
 <main id="layout">
@@ -29,6 +34,7 @@
   <section id="habitat">
     <div class="feed-label">FEED A — HABITAT <span class="live">● LIVE</span></div>
     <canvas id="room-canvas"></canvas>
+    <div id="tooltip" class="hidden" aria-hidden="true"></div>
   </section>
 
   <aside id="mindpanel">
@@ -76,6 +82,7 @@
           </div>
           <canvas id="preview-canvas" width="192" height="144"></canvas>
           <div id="subject-status">signal: no subject instantiated</div>
+          <div id="subject-telemetry">telemetry: —</div>
         </div>
 
         <div class="win" id="win-terminal">
@@ -93,9 +100,15 @@
   </div>
 </div>
 
+<!-- every visit begins the same way: with the deck powering on -->
+<div id="boot" aria-hidden="true">
+  <div class="boot-text">OBSERVATION DECK<br><span>SESSION 1 — it is morning.</span></div>
+</div>
+
 <script src="mind.js"></script>
 <script src="room.js"></script>
 <script src="screen.js"></script>
+<script src="audio.js"></script>
 <script src="main.js"></script>
 </body>
 </html>

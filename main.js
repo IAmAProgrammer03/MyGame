@@ -86,20 +86,58 @@
     affectEl = document.getElementById("affect-readout");
     clockEl = document.getElementById("session-clock");
     hintEl = document.getElementById("hint");
+    var stackEl = document.getElementById("stack-readout");
 
     window.ROOM.init();
     window.SCREEN.init();
+    window.SOUND.init();
+
+    // the deck powers on the same way every time
+    var bootEl = document.getElementById("boot");
+    setTimeout(function () {
+      if (bootEl && bootEl.parentNode) bootEl.parentNode.removeChild(bootEl);
+    }, 2000);
+
+    // rotating hints, retired one by one as the observer discovers things
+    var hints = [
+      { text: "click his monitor to view his screen", done: false },
+      { text: "you could knock on his door", done: false }
+    ];
+    var hintIdx = 0;
+    function refreshHint() {
+      var open = hints.filter(function (h) { return !h.done; });
+      if (open.length === 0) { hintEl.classList.add("hidden"); return; }
+      hintIdx = (hintIdx + 1) % open.length;
+      hintEl.textContent = open[hintIdx].text;
+    }
+    setInterval(refreshHint, 9000);
+
+    // sound toggle — audio can only start from a user gesture anyway
+    var soundBtn = document.getElementById("sound-toggle");
+    soundBtn.addEventListener("click", function () {
+      var on = window.SOUND.toggle();
+      soundBtn.textContent = on ? "🔊 SOUND" : "🔇 SOUND";
+      soundBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    });
 
     window.MIND.on("thought", function (d) { queue.push(d); });
     window.MIND.on("monitor-click", function () {
       window.SCREEN.open();
-      hintEl.classList.add("hidden");
+      hints[0].done = true;
+      refreshHint();
+    });
+    window.MIND.on("knock", function (d) {
+      if (!d.phantom) { hints[1].done = true; refreshHint(); }
+    });
+    window.MIND.on("depth", function (d) {
+      stackEl.textContent = "STACK " + (d.depth > 9 ? "9+" : d.depth);
     });
 
     // observer tool: ?screen=1 opens his screen immediately
     if (/[?&]screen=1/.test(window.location.search)) {
       window.SCREEN.open();
-      hintEl.classList.add("hidden");
+      hints[0].done = true;
+      refreshHint();
     }
 
     var last = performance.now();

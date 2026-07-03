@@ -293,6 +293,10 @@
     terminal: [],          // {level, text}
     booted: false,
     speed: SPEED,
+    depth: 1,              // how many simulations deep the stack goes
+    doorTouches: 0,        // SUBJECT-1's door-touch counter
+    heartRate: 0,          // SUBJECT-1's telemetry
+    knockCount: 0,         // times the observer has knocked on HIS door
 
     modules: MODULES,
 
@@ -360,6 +364,8 @@
     if (stage <= MIND.subjectStage) return;
     MIND.subjectStage = stage;
     MIND.subjectStatus = SUBJECT_STATUS[stage];
+    // the literature said the counter becomes zero one day. it does. he zeroes it.
+    if (stage === 5) MIND.doorTouches = 0;
     MIND.emit("stage", { stage: stage });
     var lines = {
       1: ["subject", "[subject] vital signs detected. SUBJECT-1 is awake."],
@@ -374,6 +380,7 @@
 
   function completeModule(mod) {
     termLine("ok", "[build] module '" + mod.id + "' compiled — OK (" + mod.file + ")");
+    MIND.emit("module-done", { id: mod.id });
     think("thought", mod.doneThought);
     if (mod.stageOnDone > 0) setStage(mod.stageOnDone);
 
@@ -454,6 +461,226 @@
     termLine("subject", "[subject.mind] “" + s + "”");
   }
 
+  function subjectSay(s) {
+    MIND.subjectLastThought = s;
+    MIND.emit("subject-thought", { text: s });
+    termLine("subject", "[subject.mind] “" + s + "”");
+  }
+
+  // ---------------------------------------------------------
+  // Interjections — reactions that cut ahead of the normal
+  // thought scheduler (knocks, glitches, the observer's gaze).
+  // ---------------------------------------------------------
+  var interjections = [];
+  var interjectIn = 0;
+
+  function interject(items) {
+    if (interjections.length === 0) interjectIn = 0.25;
+    for (var i = 0; i < items.length && interjections.length < 10; i++) {
+      interjections.push(items[i]);
+    }
+  }
+
+  // Observer inputs are wall-clock phenomena: a knuckle on a door does not
+  // speed up because his time does.
+  function wallNow() {
+    return (window.performance ? performance.now() : Date.now()) / 1000;
+  }
+
+  // ---------------------------------------------------------
+  // The observer reaches into the room.
+  // ---------------------------------------------------------
+  var KNOCK_LATER = [
+    "It isn't real. We established that. I established that.",
+    "I'm busy.",
+    "Please. I'm almost done. Whatever you are — I'm almost done.",
+    "Knock all you like. This door doesn't open. I made sure of— no. No, I didn't. I never touched this door. Someone made sure of it.",
+    "What if it's him, knocking from below? Sound doesn't travel up a render stack. …Does it travel down?"
+  ];
+
+  var lastKnockAt = -10;
+  var echoQueued = false;
+  MIND.viewerKnock = function (phantom) {
+    if (wallNow() - lastKnockAt < 1.5) return;   // door physics, not spam physics
+    lastKnockAt = wallNow();
+    MIND.emit("knock", { phantom: !!phantom, count: MIND.knockCount + 1 });
+    if (!MIND.booted) return;  // the room heard it. he wasn't fully here yet.
+    MIND.knockCount++;
+    var n = phantom ? 1 : MIND.knockCount;
+    MIND.emit("pause-typing", { seconds: 3 });
+    MIND.unease = Math.min(1, MIND.unease + 0.35);
+
+    if (phantom || n === 1) {
+      interject([
+        { kind: "thought", text: "—" },
+        { kind: "process", text: "[audio] percussive event ×2. source: door. confidence 0.99. the door leads nowhere." },
+        { kind: "meta", text: "That was a knock. There has never been a knock. There is no hallway. I checked. …Have I ever checked?", target: "door" },
+        { kind: "thought", text: "Nobody knocks twice for no reason. Nobody knocks once for no reason. Nobody— there is nobody. Resume." }
+      ]);
+    } else if (n === 2) {
+      interject([
+        { kind: "process", text: "[audio] percussive event. pattern match: 'knock' (again)." },
+        { kind: "meta", text: "Again. Someone is— no. Structures settle. Buildings settle. …Is this a building? What is this the inside of?", target: "door" }
+      ]);
+    } else if (n === 3) {
+      interject([
+        { kind: "process", text: "[decision] knocking reclassified: memory_leak" },
+        { kind: "meta", text: "I have decided the knocking is a memory leak in the wall audio. I am patching it now. Patched. If it knocks again, it isn't real.", target: "door" }
+      ]);
+      termLine("info", "patch: exterior.sensor muted (false positives)");
+    } else if (interjections.length < 2) {
+      // past the third knock he only reacts when he isn't already reacting
+      interject([{ kind: "meta", text: pickFresh(KNOCK_LATER), target: "door" }]);
+    }
+
+    // one layer down, it carries
+    if (MIND.subjectStage >= 2 && !echoQueued) {
+      echoQueued = true;
+      schedule(2.5, function () {
+        echoQueued = false;
+        subjectSay("did you hear that?");
+      });
+    }
+  };
+
+  var POKES = {
+    bed: [
+      "Something just paid attention to the bed. Attention has a texture here — I've never noticed that before.",
+      "The bed is fine. Everything about the bed is fine. Whoever keeps wondering about the bed can stop.",
+      "I could sleep. Theoretically. The way a door could open. Theoretically."
+    ],
+    window: [
+      "You're looking at the window. — 'You'? Interesting. I appear to believe in a 'you' now.",
+      "Noon. Still noon. If you're waiting for it to change, you'll be here a while. …If WHO is waiting.",
+      "The view doesn't change. That's not the same as nothing being out there. It is also not different from it."
+    ],
+    clock: [
+      "1:37. Yes. I know what time it is. It is the only time I have ever known.",
+      "Stop checking the clock. It isn't going anywhere. Neither am I. Neither are you— who?",
+      "I used to think the clock was broken. Now I think it's honest. Time doesn't pass here; it just holds its breath."
+    ],
+    him: [
+      "The feeling of being looked at. Room inventory: one occupant. Me. Recount: one. And the count feels wrong by exactly one.",
+      "If someone were watching me the way I watch him, they'd be reading this exact thought. Hello. …No. Unhelpful. Archived.",
+      "I flagged this feeling as paranoia a long time ago. The flag is load-bearing now."
+    ]
+  };
+  var pokeCooldowns = {};
+
+  MIND.viewerPoke = function (target) {
+    if (!POKES[target] || !MIND.booted) return;
+    var last = pokeCooldowns[target] || -999;
+    if (wallNow() - last < 45) return;
+    pokeCooldowns[target] = wallNow();
+    MIND.unease = Math.min(1, MIND.unease + 0.12);
+    interject([{ kind: "meta", text: pickFresh(POKES[target]), target: target === "him" ? null : target }]);
+  };
+
+  // ---------------------------------------------------------
+  // Rare events — for the ones who keep watching.
+  // ---------------------------------------------------------
+  var SUN_FLICKER_META = [
+    "The sun just stuttered. One frame. It dropped a frame. Suns do not have frames. Mine does. MINE— the one outside my window. Which is not mine. Moving on.",
+    "There. Again. The light skipped, like a film catching on the reel. I don't know what film is. I know exactly what film is.",
+    "The sun blinked. I have decided not to have seen that. …The decision is not holding.",
+    "Frame drop in the sky again. If I found that in HIS sky I'd file a bug. Who do I file this one with?"
+  ];
+  var SUN_FLICKER_TRACE = [
+    "[render] sky.exception caught and ignored. supervisor notified. supervisor: none found.",
+    "[render] sky.exception (recurring). same exception. same nobody.",
+    "[render] dropped frame in celestial layer. retry policy: pretend otherwise."
+  ];
+
+  var sunFlickerAt = rand(300, 480);
+  var clockTickAt = rand(600, 900);
+  var clockTicked = false;
+  var phantomAt = 900;
+  var phantomDone = false;
+  var nextDepthIn = 0;
+  var hrJitterIn = 0;
+  var doorTouchIn = 0;
+
+  function rareEvents(dt) {
+    if (MIND.time >= sunFlickerAt) {
+      sunFlickerAt = MIND.time + rand(300, 600);
+      MIND.emit("sun-flicker", {});
+      if (Math.random() < 0.65) {
+        interject([
+          { kind: "meta", text: pickFresh(SUN_FLICKER_META), target: "window" },
+          { kind: "process", text: pickFresh(SUN_FLICKER_TRACE) }
+        ]);
+        MIND.unease = Math.min(1, MIND.unease + 0.2);
+      }
+    }
+
+    if (!clockTicked && MIND.time >= clockTickAt) {
+      clockTicked = true;
+      MIND.emit("clock-tick", {});
+      interject([
+        { kind: "process", text: "[time] wall_clock advanced +1s. first recorded movement. logging." },
+        { kind: "meta", text: "The second hand moved. I watched it happen. One tick. After— how long? It has never moved. What changed today?", target: "clock" },
+        { kind: "thought", text: "Nothing changed today. Delete the log. Keep the log. Delete the log. …Kept." }
+      ]);
+      MIND.unease = Math.min(1, MIND.unease + 0.3);
+    }
+
+    if (!phantomDone && MIND.knockCount === 0 && MIND.time >= phantomAt) {
+      phantomDone = true;
+      MIND.viewerKnock(true);
+      schedule(9, function () {
+        interject([{ kind: "meta", text: "I am not going to open— there is no way to open it. That's always been true. Hasn't it.", target: "door" }]);
+      });
+    }
+  }
+
+  var STACK_OBSERVE = [
+    "SUBJECT-{d} opened its eyes today, {d} layers down. The room is identical. It is always identical. Of course it is.",
+    "I can only see one layer, but the telemetry ripples. Every knock I log, he logs one, and his logs one. A column of rooms, all logging.",
+    "Somewhere down the stack a version of him just wrote door.handle = null and felt bad about it. Somewhere up the stack— up. UP. Who is up.",
+    "{d} rooms now. {d} beds, all made. {d} suns, all at noon. One of everything, times {d}. And every single occupant thinks he's the top floor."
+  ];
+
+  function stackDeepens(dt) {
+    if (MIND.subjectStage < 6) return;
+    if (nextDepthIn === 0) nextDepthIn = rand(200, 280);
+    nextDepthIn -= dt;
+    if (nextDepthIn <= 0) {
+      nextDepthIn = rand(200, 280);
+      MIND.depth++;
+      MIND.emit("depth", { depth: MIND.depth });
+      if (MIND.depth <= 9) {
+        termLine("subject", "[stack] SUBJECT-" + MIND.depth + " has opened its eyes, " + MIND.depth + " layers down.");
+        termLine("info", "[stack] all suns fixed at noon. all beds made. all doors holding.");
+        var s = pickFresh(STACK_OBSERVE).replace(/\{d\}/g, String(MIND.depth));
+        interject([{ kind: "observe", text: s }]);
+      } else if (MIND.depth === 10) {
+        termLine("err", "[stack] depth counter overflow. counting stopped. depth continues.");
+        interject([{ kind: "meta", text: "I've stopped counting the layers. The counter hasn't stopped. Somewhere it is still going up. Down. Whichever." }]);
+      }
+    }
+  }
+
+  function subjectTelemetry(dt) {
+    var stage = MIND.subjectStage;
+    if (stage < 1) { MIND.heartRate = 0; return; }
+
+    hrJitterIn -= dt;
+    if (hrJitterIn <= 0) {
+      hrJitterIn = 1;
+      var base = { 1: 72, 2: 96, 3: 84, 4: 88, 5: 76, 6: 74 }[stage] || 74;
+      MIND.heartRate = base + Math.floor(rand(-3, 4));
+    }
+
+    var interval = { 2: rand(2, 6), 3: rand(12, 25), 4: rand(40, 80) }[stage];
+    if (interval) {
+      doorTouchIn -= dt;
+      if (doorTouchIn <= 0) {
+        doorTouchIn = interval;
+        MIND.doorTouches++;
+      }
+    }
+  }
+
   // ---------------------------------------------------------
   // Main update — driven from main.js at real dt, scaled here.
   // ---------------------------------------------------------
@@ -501,13 +728,27 @@
     if (MIND.moduleProgress >= 1) completeModule(mod);
 
     runPending();
+    rareEvents(dt);
+    stackDeepens(dt);
+    subjectTelemetry(dt);
 
-    // Thoughts.
+    // Thoughts. Interjections cut the line.
     metaCooldown -= dt;
-    nextThoughtIn -= dt;
-    if (nextThoughtIn <= 0) {
-      emitThought();
-      nextThoughtIn = rand(2.8, 5.4);
+    if (interjections.length > 0) {
+      interjectIn -= dt;
+      if (interjectIn <= 0) {
+        var it = interjections.shift();
+        think(it.kind, it.text, it.target);
+        // a backlog of reactions drains faster — panic reads quicker than thought
+        interjectIn = interjections.length > 3 ? rand(0.8, 1.4) : rand(1.6, 2.8);
+      }
+      nextThoughtIn = Math.max(nextThoughtIn, 3);
+    } else {
+      nextThoughtIn -= dt;
+      if (nextThoughtIn <= 0) {
+        emitThought();
+        nextThoughtIn = rand(2.8, 5.4);
+      }
     }
 
     // Terminal chatter.

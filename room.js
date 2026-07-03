@@ -48,8 +48,27 @@
     return segs;
   }
 
-  // Regions (virtual coords)
-  var HIT_COMPUTER = { x: 208, y: 62, w: 106, h: 108 }; // desk + monitor + tower
+  // event-driven wobbles
+  var doorShake = 0;       // seconds of door rattle left
+  var sunFlicker = 0;      // seconds of dropped-frame sun left
+  var secondBase = -Math.PI / 2;  // where the second hand points; ticks once, maybe
+
+  // dust motes drifting in the sunbeam — u across the beam, v down it
+  var motes = [];
+  for (var mi = 0; mi < 14; mi++) {
+    motes.push({ u: Math.random(), v: Math.random(), s: 0.008 + Math.random() * 0.02, w: Math.random() * 6.28 });
+  }
+
+  // Regions (virtual coords). Order matters: first hit wins.
+  var HOTSPOTS = [
+    { id: "computer", x: 208, y: 62, w: 106, h: 108, tip: "TERMINAL — click to view his screen", click: true },
+    { id: "him",      x: 182, y: 86,  w: 26, h: 80,  tip: "SUBJECT-0 — working. always working." },
+    { id: "door",     x: 146, y: 40,  w: 46, h: 100, tip: "DOOR — no handle. you could knock.", click: true },
+    { id: "clock",    x: 122, y: 20,  w: 28, h: 28,  tip: "CLOCK — 1:37. it is always 1:37." },
+    { id: "window",   x: 20,  y: 18,  w: 96, h: 78,  tip: "WINDOW — noon. permanent." },
+    { id: "bed",      x: 12,  y: 126, w: 84, h: 58,  tip: "BED — never used. pristine." }
+  ];
+  var hoverSpot = null;
 
   function rect(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); }
 
@@ -84,11 +103,13 @@
     // sky — fixed noon, forever
     rect(gx, gy, gw, gh, "#8fd4f2");
     rect(gx, gy + 40, gw, gh - 40, "#a5e0f8");
-    // sun: never moves
-    ctx.fillStyle = "#ffe98a";
-    ctx.beginPath(); ctx.arc(48, 44, 13, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "#ffd94a";
-    ctx.beginPath(); ctx.arc(48, 44, 9, 0, Math.PI * 2); ctx.fill();
+    // sun: never moves. almost never.
+    var sunY = 44 + (sunFlicker > 0 ? 1 : 0);
+    var dim = sunFlicker > 0;
+    ctx.fillStyle = dim ? "#f0d878" : "#ffe98a";
+    ctx.beginPath(); ctx.arc(48, sunY, 13, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = dim ? "#eec83a" : "#ffd94a";
+    ctx.beginPath(); ctx.arc(48, sunY, 9, 0, Math.PI * 2); ctx.fill();
     // rays
     ctx.fillStyle = "#ffe98a";
     ctx.fillRect(46, 26, 4, 5); ctx.fillRect(46, 57, 4, 5);
@@ -124,9 +145,9 @@
     var ma = -Math.PI / 2 + (37 / 60) * Math.PI * 2;
     ctx.beginPath(); ctx.moveTo(cx, cy);
     ctx.lineTo(cx + Math.cos(ma) * 7, cy + Math.sin(ma) * 7); ctx.stroke();
-    // second hand: trembles, never advances
+    // second hand: trembles, never advances. it advanced once.
     var tremble = Math.sin(t * 22) * 0.06;
-    var sa = -Math.PI / 2 + tremble;
+    var sa = secondBase + tremble;
     ctx.strokeStyle = "#c0392b";
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(cx, cy);
@@ -134,13 +155,14 @@
   }
 
   function drawDoor() {
-    rect(146, 40, 46, 100, "#7a5230");          // frame
-    rect(150, 44, 38, 96, "#9a6a3a");           // door
-    rect(155, 52, 28, 34, "#8a5c32");           // upper panel
-    rect(155, 94, 28, 38, "#8a5c32");           // lower panel
+    var dx = doorShake > 0 ? ((Math.floor(t * 30) % 2) ? 1 : 0) : 0;
+    rect(146, 40, 46, 100, "#7a5230");          // frame stays put
+    rect(150 + dx, 44, 38, 96, "#9a6a3a");      // door
+    rect(155 + dx, 52, 28, 34, "#8a5c32");      // upper panel
+    rect(155 + dx, 94, 28, 38, "#8a5c32");      // lower panel
     // the shadow where a handle should be
-    rect(153, 88, 5, 7, "#7a4e28");
-    rect(154, 89, 3, 5, "#6e4522");
+    rect(153 + dx, 88, 5, 7, "#7a4e28");
+    rect(154 + dx, 89, 3, 5, "#6e4522");
   }
 
   function drawSunray() {
@@ -154,6 +176,16 @@
     ctx.lineTo(52, 168);
     ctx.closePath();
     ctx.fill();
+    // dust, drifting through the light — the only weather he gets
+    ctx.fillStyle = "#fff6c8";
+    for (var i = 0; i < motes.length; i++) {
+      var m = motes[i];
+      var u = Math.max(0, Math.min(1, m.u + Math.sin(t * 0.6 + m.w) * 0.03));
+      var x = (28 + 82 * u) + ((52 + 98 * u) - (28 + 82 * u)) * m.v;
+      var y = 92 + 76 * m.v;
+      ctx.globalAlpha = 0.25 * (0.5 + 0.5 * Math.sin(t * 1.3 + m.w * 2));
+      ctx.fillRect(x, y, 1, 1);
+    }
     ctx.restore();
   }
 
@@ -302,9 +334,22 @@
 
     // typing rhythm with human-ish pauses
     if (typingPaused > 0) typingPaused -= dt;
-    else typingPhase = (typingPhase + dt * 7) % 1;
+    else {
+      var prevPhase = typingPhase;
+      typingPhase = (prevPhase + dt * 7) % 1;
+      if (typingPhase < prevPhase && window.SOUND) window.SOUND.type();
+    }
 
     if (glanceTimer > 0) glanceTimer -= dt;
+    if (doorShake > 0) doorShake -= dt;
+    if (sunFlicker > 0) sunFlicker -= dt;
+
+    // dust falls at dust speed regardless of anything
+    for (var mi = 0; mi < motes.length; mi++) {
+      var m = motes[mi];
+      m.v += m.s * dt * 6;
+      if (m.v > 1) { m.v = 0; m.u = Math.random(); }
+    }
 
     // screen flicker
     if (flickerTimer > 0) flickerTimer -= dt;
@@ -359,27 +404,55 @@
     };
   }
 
-  function inComputer(p) {
-    return p.x >= HIT_COMPUTER.x && p.x <= HIT_COMPUTER.x + HIT_COMPUTER.w &&
-           p.y >= HIT_COMPUTER.y && p.y <= HIT_COMPUTER.y + HIT_COMPUTER.h;
+  function spotAt(p) {
+    for (var i = 0; i < HOTSPOTS.length; i++) {
+      var h = HOTSPOTS[i];
+      if (p.x >= h.x && p.x <= h.x + h.w && p.y >= h.y && p.y <= h.y + h.h) return h;
+    }
+    return null;
   }
 
   function init() {
     canvas = document.getElementById("room-canvas");
     ctx = canvas.getContext("2d");
+    var tooltip = document.getElementById("tooltip");
     resize();
     window.addEventListener("resize", resize);
 
     canvas.addEventListener("mousemove", function (ev) {
-      hoverMonitor = inComputer(toVirtual(ev));
-      canvas.classList.toggle("pointer", hoverMonitor);
+      hoverSpot = spotAt(toVirtual(ev));
+      hoverMonitor = !!(hoverSpot && hoverSpot.id === "computer");
+      canvas.classList.toggle("pointer", !!(hoverSpot && hoverSpot.click));
+      if (hoverSpot) {
+        tooltip.textContent = hoverSpot.tip;
+        tooltip.classList.remove("hidden");
+        var host = canvas.parentElement.getBoundingClientRect();
+        // clamp inside the habitat panel; flip above the cursor near the bottom
+        var tx = ev.clientX - host.left + 14;
+        var ty = ev.clientY - host.top + 18;
+        tx = Math.max(4, Math.min(tx, host.width - tooltip.offsetWidth - 6));
+        if (ty + tooltip.offsetHeight > host.height - 6) {
+          ty = ev.clientY - host.top - tooltip.offsetHeight - 10;
+        }
+        tooltip.style.left = tx + "px";
+        tooltip.style.top = ty + "px";
+      } else {
+        tooltip.classList.add("hidden");
+      }
     });
     canvas.addEventListener("mouseleave", function () {
+      hoverSpot = null;
       hoverMonitor = false;
       canvas.classList.remove("pointer");
+      tooltip.classList.add("hidden");
     });
     canvas.addEventListener("click", function (ev) {
-      if (inComputer(toVirtual(ev))) window.MIND.emit("monitor-click", {});
+      tooltip.classList.add("hidden");   // touch devices get no mouseleave
+      var h = spotAt(toVirtual(ev));
+      if (!h) return;
+      if (h.id === "computer") window.MIND.emit("monitor-click", {});
+      else if (h.id === "door") window.MIND.viewerKnock(false);
+      else window.MIND.viewerPoke(h.id);
     });
 
     // his mind reaches into the room
@@ -389,6 +462,17 @@
     });
     window.MIND.on("pause-typing", function (d) {
       typingPaused = d.seconds;
+    });
+    window.MIND.on("knock", function () {
+      doorShake = 0.5;
+      glanceTarget = "door";
+      glanceTimer = 2.6;
+    });
+    window.MIND.on("sun-flicker", function () {
+      sunFlicker = 0.16;
+    });
+    window.MIND.on("clock-tick", function () {
+      secondBase += Math.PI / 30;   // one second, permanently
     });
   }
 

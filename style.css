@@ -56,6 +56,12 @@ html, body {
 .session-info .daylight { color: var(--amber); }
 #session-clock { color: var(--text); }
 
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
 .hint {
   color: var(--dim);
   font-style: italic;
@@ -63,6 +69,21 @@ html, body {
 }
 @keyframes hintpulse { 50% { color: var(--amber); } }
 .hint.hidden { display: none; }
+
+#sound-toggle {
+  background: transparent;
+  border: 1px solid var(--panel-edge);
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+#sound-toggle:hover { color: var(--text); border-color: var(--dim); }
+#sound-toggle[aria-pressed="true"] { color: var(--amber); border-color: var(--amber); }
+
+#stack-readout { color: var(--cyan); }
 
 /* ---------- main layout ---------- */
 
@@ -99,6 +120,20 @@ html, body {
   cursor: default;
 }
 #room-canvas.pointer { cursor: pointer; }
+
+#tooltip {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  background: rgba(9, 12, 18, 0.92);
+  border: 1px solid var(--panel-edge);
+  color: var(--dim);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+#tooltip.hidden { display: none; }
 
 /* ---------- thought panel ---------- */
 
@@ -338,6 +373,16 @@ html, body {
   text-overflow: ellipsis;
 }
 
+#subject-telemetry {
+  padding: 3px 9px 5px;
+  font-size: 10px;
+  color: #58a0aa;
+  background: #0a1210;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 #terminal-body {
   flex: 1;
   overflow-y: auto;
@@ -371,6 +416,45 @@ html, body {
   cursor: pointer;
 }
 #screen-close:hover { color: var(--warn); border-color: var(--warn); }
+
+/* ---------- boot flicker: every visit starts the same way ---------- */
+
+#boot {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  animation: bootout 1.9s steps(1) forwards;
+}
+.boot-text {
+  color: var(--amber);
+  font-size: 15px;
+  letter-spacing: 0.35em;
+  text-align: center;
+  line-height: 2.2;
+  animation: bootflicker 1.2s steps(1);
+}
+.boot-text span {
+  color: var(--dim);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+}
+@keyframes bootflicker {
+  0%, 7%, 21%  { opacity: 0; }
+  4%, 14%, 30% { opacity: 0.4; }
+  35%, 100%    { opacity: 1; }
+}
+@keyframes bootout {
+  0%   { opacity: 1; }
+  82%  { opacity: 1; }
+  88%  { opacity: 0.2; }
+  92%  { opacity: 0.7; }
+  100% { opacity: 0; visibility: hidden; }
+}
 
 /* visually hidden, still read by assistive tech */
 .sr-only {

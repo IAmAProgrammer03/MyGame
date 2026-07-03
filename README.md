@@ -38,8 +38,22 @@ build starting from 0%. He never notices. That's the point.
   - a **terminal** with the full build log — every module compiled, every
     warning, every word his subject says;
   - **FEED B** — a live camera inside his simulation, pointed at the human
-    trapped in it;
+    trapped in it, with live telemetry: heart rate, door-touch counter,
+    stack depth;
   - the **build progress bar**, which approaches 97.3% and never, ever arrives.
+- **Knock on his door.** Click it. He hears it. There has never been a knock
+  before. Keep knocking and listen to how he explains it to himself — and
+  listen for what happens one layer down.
+- **Look at things.** Hover anything for the observation-deck label; click the
+  bed, the window, the clock, or *him*, and he may feel your attention land.
+  Attention has a texture here.
+- **Turn on the sound** (🔇 button, top right) — a synthesized room: the hum,
+  his keys, the build chimes, the knocks. No audio files; it's all generated.
+- **Watch the STACK counter.** Once his subject starts building, the recursion
+  doesn't stop at two.
+- **Stay a while.** Rooms that run long enough develop... irregularities. The
+  sun shouldn't drop frames. The clock shouldn't tick. If you never knock,
+  that doesn't strictly mean nobody will.
 - Press `Esc`, click the ✕, or click outside the screen to return to the room.
 
 ## What will happen (one sitting, ~10 minutes)
@@ -64,10 +78,11 @@ The watcher, watched. All the way down — and, presumably, all the way up.
 | --- | --- |
 | `index.html` | Page structure: room feed, thought panel, his screen overlay |
 | `style.css` | The observation-deck chrome and his desktop OS |
-| `mind.js` | His mind: thought engine, build state, the subject's stages |
-| `room.js` | FEED A — the pixel-art room, permanent noon, him at the desk |
-| `screen.js` | His screen: live code editor, terminal, FEED B nested sim |
-| `main.js` | Boot + frame loop + the typewriter for his thoughts |
+| `mind.js` | His mind: thought engine, build state, subject stages, knocks, rare events |
+| `room.js` | FEED A — the pixel-art room, permanent noon, hotspots, dust in the light |
+| `screen.js` | His screen: live code editor, terminal, FEED B nested sim + telemetry |
+| `audio.js` | Synthesized sound: room hum, keystrokes, knocks, chimes (opt-in) |
+| `main.js` | Boot flicker + frame loop + the typewriter for his thoughts |
 
 ## Observer tools (URL parameters)
 
