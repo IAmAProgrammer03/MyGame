@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BeatForge Studio</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header id="topbar">
+  <div class="logo">🎵 BeatForge<span>Studio</span></div>
+
+  <div class="transport">
+    <button id="btn-goto-start" title="Return to start">⏮</button>
+    <button id="btn-play" title="Play / Pause (Space)">▶</button>
+    <button id="btn-stop" title="Stop">⏹</button>
+    <button id="btn-record" class="rec-btn" title="Record (R)">⏺</button>
+  </div>
+
+  <div class="time-display">
+    <span id="pos-display">1.1.1</span>
+    <span id="time-display">0:00.0</span>
+  </div>
+
+  <label class="field">BPM <input id="bpm" type="number" min="40" max="240" step="1" value="110"></label>
+
+  <button id="btn-metronome" class="toggle" title="Metronome (M)">🕗 Click</button>
+  <button id="btn-loop" class="toggle" title="Loop playback (L)">🔁 Loop</button>
+
+  <label class="field">Snap
+    <select id="grid-select">
+      <option value="1">1/4</option>
+      <option value="0.5">1/8</option>
+      <option value="0.25" selected>1/16</option>
+      <option value="0.125">1/32</option>
+      <option value="0">Off</option>
+    </select>
+  </label>
+
+  <div class="spacer"></div>
+
+  <button id="btn-undo" title="Undo (Ctrl+Z)">↩</button>
+  <button id="btn-redo" title="Redo (Ctrl+Y)">↪</button>
+  <button id="btn-loops" title="Loop & pattern library">🧩 Loops</button>
+  <button id="btn-demo" title="Load a demo song">✨ Demo</button>
+
+  <input id="project-name" value="Untitled Song" title="Project name" spellcheck="false">
+
+  <button id="btn-new" title="New project">🗒</button>
+  <button id="btn-save" title="Save project in this browser">💾 Save</button>
+  <button id="btn-open" title="Open a .beatforge.json project file">📂</button>
+  <button id="btn-download" title="Download project file">📤</button>
+  <button id="btn-export" title="Mix down and export a .wav audio file">⬇ WAV</button>
+  <button id="btn-help" title="Help & shortcuts">?</button>
+</header>
+
+<main>
+  <section id="arrange-area">
+    <div id="ruler-row">
+      <div id="ruler-corner">
+        <button id="btn-zoom-out" title="Zoom out">−</button>
+        <button id="btn-zoom-in" title="Zoom in">+</button>
+      </div>
+      <div id="ruler-clip"><canvas id="ruler"></canvas></div>
+    </div>
+    <div id="arrange-row">
+      <div id="track-headers">
+        <div id="headers-inner"></div>
+        <div id="add-track-row">
+          <button id="btn-add-inst" title="Add an instrument track">+ Instrument</button>
+          <button id="btn-add-drum" title="Add a drum track">+ Drums</button>
+          <button id="btn-add-audio" title="Add an audio (mic recording) track">+ Audio</button>
+        </div>
+      </div>
+      <div id="arrange-scroll"><canvas id="arrange"></canvas></div>
+    </div>
+  </section>
+
+  <section id="bottom">
+    <div id="bottom-tabs">
+      <button data-tab="editor" class="active">🎼 Editor</button>
+      <button data-tab="keys">🎹 Keys</button>
+      <button data-tab="mic">🎤 Mic / Tuner</button>
+    </div>
+
+    <div id="panel-editor" class="panel active">
+      <div id="editor-empty">Double-click a clip in the arrangement to edit its notes — or double-click an empty lane to create one.</div>
+
+      <div id="pianoroll-wrap" hidden>
+        <div class="editor-bar">
+          <span id="pr-title">Clip</span>
+          <span class="hint">draw: click &nbsp;·&nbsp; move: drag &nbsp;·&nbsp; resize: drag right edge &nbsp;·&nbsp; delete: right-click</span>
+          <button id="pr-close">✕</button>
+        </div>
+        <div id="pr-scroll"><canvas id="pianoroll"></canvas></div>
+      </div>
+
+      <div id="drumgrid-wrap" hidden>
+        <div class="editor-bar">
+          <span id="dg-title">Drum Clip</span>
+          <span class="hint">click cells to toggle steps &nbsp;·&nbsp; click a drum name to preview</span>
+          <button id="dg-clear">Clear</button>
+          <button id="dg-close">✕</button>
+        </div>
+        <div id="drum-scroll"><div id="drum-grid"></div></div>
+      </div>
+
+      <div id="audio-wrap" hidden>
+        <div class="editor-bar">
+          <span id="au-title">Audio Clip</span>
+          <button id="au-close">✕</button>
+        </div>
+        <div id="audio-info"></div>
+      </div>
+    </div>
+
+    <div id="panel-keys" class="panel">
+      <div id="keys-toolbar">
+        <span>Octave: <b id="oct-label">C4</b></span>
+        <button id="oct-down" title="Octave down (Z)">−</button>
+        <button id="oct-up" title="Octave up (X)">+</button>
+        <span class="hint">Play with your mouse or computer keyboard (A W S E D F T G Y H U J K O L P). While recording, your playing lands in the song.</span>
+      </div>
+      <div id="kbd"></div>
+    </div>
+
+    <div id="panel-mic" class="panel">
+      <div id="mic-left">
+        <button id="btn-mic-enable">🎤 Enable Microphone</button>
+        <div id="mic-status">Mic is off</div>
+        <div id="mic-meter"><div id="mic-meter-fill"></div></div>
+        <label class="row"><input type="checkbox" id="mic-monitor"> Hear myself (monitor)</label>
+        <div class="row mode-row">
+          Record as:
+          <label><input type="radio" name="mic-mode" value="notes" checked> Notes (MIDI)</label>
+          <label><input type="radio" name="mic-mode" value="audio"> Audio</label>
+        </div>
+        <div id="mic-target" class="hint"></div>
+      </div>
+      <div id="mic-center">
+        <div id="tuner-note">—</div>
+        <div id="tuner-cents-wrap"><div id="tuner-cents-needle"></div><div class="cents-zero"></div></div>
+        <div id="tuner-freq">Play your instrument…</div>
+      </div>
+      <div id="mic-right">
+        <h4>How it works</h4>
+        <ol>
+          <li>Enable the microphone and play your instrument — the tuner shows the note it hears, live.</li>
+          <li>Arm a track (⏺ on a track header), pick <b>Notes</b> or <b>Audio</b> mode.</li>
+          <li>Hit <b>Record</b> in the transport and play along. Notes mode transcribes your playing into editable notes; Audio mode records the sound itself.</li>
+          <li>Stop — your take is in the song. Open the clip to fix any note.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="modal-overlay" hidden>
+  <div id="modal-loops" class="modal" hidden>
+    <div class="modal-head"><h3>🧩 Loop &amp; Pattern Library</h3><button class="modal-close">✕</button></div>
+    <p class="hint">Click a loop to drop it at the playhead. Drum loops go to a drum track, everything else gets its own instrument track.</p>
+    <div id="loops-list"></div>
+  </div>
+
+  <div id="modal-help" class="modal" hidden>
+    <div class="modal-head"><h3>BeatForge Studio — Help</h3><button class="modal-close">✕</button></div>
+    <div class="help-cols">
+      <div>
+        <h4>Making music</h4>
+        <ul>
+          <li>Add tracks with <b>+ Instrument</b>, <b>+ Drums</b>, <b>+ Audio</b>.</li>
+          <li>Double-click an empty lane to create a clip; double-click a clip to edit it (piano roll or drum grid).</li>
+          <li>Drag clips to move, drag their right edge to resize, <b>Ctrl+D</b> duplicates, <b>Delete</b> removes.</li>
+          <li>Drag on the timeline ruler to set a loop region; click it to move the playhead.</li>
+          <li>Use <b>🧩 Loops</b> for ready-made beats, basslines, chords and melodies.</li>
+          <li>Mix with each track's volume, pan, reverb and delay sends; <b>M</b>ute / <b>S</b>olo per track.</li>
+          <li><b>⬇ WAV</b> mixes your whole song down to an audio file.</li>
+        </ul>
+      </div>
+      <div>
+        <h4>Recording your instrument</h4>
+        <ul>
+          <li>Open <b>🎤 Mic / Tuner</b>, enable the mic, and play — the note you're playing shows live.</li>
+          <li>Arm a track, press <b>Record</b>, play along with the click. In <b>Notes</b> mode your playing is transcribed into notes you can edit; in <b>Audio</b> mode the raw sound is recorded.</li>
+          <li>The 🎹 Keys panel records the same way — play the virtual keyboard while recording.</li>
+        </ul>
+        <h4>Shortcuts</h4>
+        <ul>
+          <li><b>Space</b> play/pause · <b>R</b> record · <b>M</b> metronome · <b>L</b> loop</li>
+          <li><b>Ctrl+Z / Ctrl+Y</b> undo/redo · <b>Ctrl+D</b> duplicate clip</li>
+          <li><b>A–P row</b> plays notes · <b>Z / X</b> octave down/up</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" hidden></div>
+<input type="file" id="file-open" accept=".json,application/json" hidden>
+
+<script src="js/engine.js"></script>
+<script src="js/pitch.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
